@@ -141,11 +141,13 @@ void * gestisci_registrazioni(void * arg) {
 }
 
 
+
 void * gestisci_messaggi(void * arg) {
 
 
     /* TBD: Completare il passaggio di parametri */
 
+    int id_coda_messaggi = *((int *)arg);
 
     for(int i=0; i<TOTALE_MESSAGGI; i++) {
 
@@ -153,10 +155,15 @@ void * gestisci_messaggi(void * arg) {
 
         /* TBD: Ricevere un messaggio dai publisher  */
 
+        ssize_t bytes = msgrcv(id_coda_messaggi, &messaggio, sizeof(messaggio_valore)-sizeof(long), 0, 0);
 
+        if(bytes < 0) {
+            perror("[BROKER] Errore ricezione messaggio");
+            continue; // O exit(1) in base alla severità desiderata
+        }
 
-        long topic = /* TBD */;
-        int valore = /* TBD */;
+        long topic = messaggio.topic;
+        int valore = messaggio.valore;
 
         printf("[BROKER] Ricevuto messaggio: topic=%ld, valore=%d\n", topic, valore);
 
@@ -177,6 +184,11 @@ void * gestisci_messaggi(void * arg) {
 
                 /* TBD: Inviare il messaggio al subscriber in ascolto sulla coda "id_coda" */
 
+                int err = msgsnd(id_coda, &messaggio, sizeof(messaggio_valore)-sizeof(long), 0);
+                
+                if(err < 0) {
+                    perror("[BROKER] Errore inoltro messaggio");
+                }
             }
         }
 
