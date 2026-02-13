@@ -1,7 +1,7 @@
 all: broker publisher subscriber
 
 broker: broker.c pubsub.h
-	gcc -o broker broker.c
+	gcc -o broker broker.c -pthread
 
 publisher: publisher.c pubsub.h
 	gcc -o publisher publisher.c
