@@ -142,56 +142,54 @@ void * gestisci_registrazioni(void * arg) {
 
 
 
-void * gestisci_messaggi(void * arg) {
+void * gestisci_registrazioni(void * arg) {
 
+    /* CORREZIONE 1: Recupero l'ID della coda dal parametro arg */
+    int id_coda_registrazioni = *((int *)arg);
 
-    /* TBD: Completare il passaggio di parametri */
+    for(int i=0; i<TOTALE_SUBSCRIBER; i++) {
 
-    int id_coda_messaggi = *((int *)arg);
+        messaggio_registrazione messaggio;
 
-    for(int i=0; i<TOTALE_MESSAGGI; i++) {
-
-        messaggio_valore messaggio;
-
-        /* TBD: Ricevere un messaggio dai publisher  */
-
-        ssize_t bytes = msgrcv(id_coda_messaggi, &messaggio, sizeof(messaggio_valore)-sizeof(long), 0, 0);
-
+        /* CORREZIONE 2: Ricevo EFFETTIVAMENTE il messaggio PRIMA di leggere i campi */
+        // Uso msgtyp 0 per leggere qualsiasi richiesta in ordine di arrivo
+        ssize_t bytes = msgrcv(id_coda_registrazioni, &messaggio, sizeof(messaggio_registrazione)-sizeof(long), 0, 0);
+        
         if(bytes < 0) {
-            perror("[BROKER] Errore ricezione messaggio");
-            continue; // O exit(1) in base alla severità desiderata
+            perror("[BROKER] Errore ricezione registrazione");
+            continue;
         }
 
+        /* Ora posso leggere i dati perché msgrcv ha riempito la struct */
         long topic = messaggio.topic;
-        int valore = messaggio.valore;
+        int id_coda = messaggio.id_coda; // Nota: nella struct l'hai chiamato id_coda
 
-        printf("[BROKER] Ricevuto messaggio: topic=%ld, valore=%d\n", topic, valore);
+        printf("[BROKER] Ricevuto messaggio di registrazione: topic=%ld, id_coda=%d\n", topic, id_coda);
 
-
-
-        // invio messaggio a tutti i subscriber registrati al topic
-
+        // aggiungo il subscriber alla lista di code
         if(topic <= 0 || topic > MAX_TOPICS) {
             printf("[BROKER] Topic non valido\n");
             exit(1);
         }
 
-        for(int j=0; j<MAX_SUBSCRIBERS; j++) {
+        if(id_coda <= 0) {
+            printf("[BROKER] Id coda non valido\n");
+            exit(1);
+        }
 
-            int id_coda = code[topic-1][j];
-
-            if(id_coda != 0) {
-
-                /* TBD: Inviare il messaggio al subscriber in ascolto sulla coda "id_coda" */
-
-                int err = msgsnd(id_coda, &messaggio, sizeof(messaggio_valore)-sizeof(long), 0);
-                
-                if(err < 0) {
-                    perror("[BROKER] Errore inoltro messaggio");
-                }
+        int trovato = 0;
+        for(int k=0; k<MAX_SUBSCRIBERS; k++) { // Uso k per non confondermi con i esterno
+            if(code[topic-1][k] == 0) {
+                code[topic-1][k] = id_coda;
+                trovato = 1;
+                break;
             }
         }
 
+        if(trovato == 0) {
+            printf("[BROKER] Numero massimo di subscriber raggiunto\n");
+            exit(1);
+        }
     }
 
     return NULL;
