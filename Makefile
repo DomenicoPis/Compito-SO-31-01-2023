@@ -1,13 +1,17 @@
+CC = gcc
+CFLAGS = -Wall -Wextra -O2
+LDFLAGS_PTHREAD = -pthread   # oppure: -lpthread
+
 all: broker publisher subscriber
 
 broker: broker.c pubsub.h
-	gcc -o broker broker.c -pthread
+	$(CC) $(CFLAGS) -o broker broker.c $(LDFLAGS_PTHREAD)
 
 publisher: publisher.c pubsub.h
-	gcc -o publisher publisher.c
+	$(CC) $(CFLAGS) -o publisher publisher.c
 
 subscriber: subscriber.c pubsub.h
-	gcc -o subscriber subscriber.c
+	$(CC) $(CFLAGS) -o subscriber subscriber.c
 
 clean: objclean ipcclean procclean
 
